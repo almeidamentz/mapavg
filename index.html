@@ -43,10 +43,10 @@
         .hero-section {
             background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 50%, #1e40af 100%);
             color: white;
-            border-radius: 16px;
-            padding: 48px;
-            margin-bottom: 32px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            border-radius: 12px;
+            padding: 24px 32px;
+            margin-bottom: 24px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
             position: relative;
             overflow: hidden;
         }
@@ -63,8 +63,9 @@
             position: relative;
             z-index: 10;
             display: flex;
-            flex-direction: column;
-            gap: 32px;
+            flex-direction: row;
+            align-items: center;
+            gap: 24px;
         }
         
         .hero-main {
@@ -74,77 +75,78 @@
         .hero-header {
             display: flex;
             align-items: center;
-            gap: 16px;
-            margin-bottom: 16px;
+            gap: 12px;
+            margin-bottom: 12px;
         }
         
         .hero-icon {
-            padding: 12px;
+            padding: 8px;
             background: rgba(255, 255, 255, 0.1);
             border-radius: 50%;
             backdrop-filter: blur(4px);
         }
         
         .hero-title {
-            font-size: 3.5rem;
+            font-size: 2.25rem;
             font-weight: 700;
-            line-height: 1.1;
+            line-height: 1.2;
             letter-spacing: -0.025em;
         }
         
         .hero-subtitle {
             color: #bfdbfe;
             display: block;
-            margin-top: 8px;
+            margin-top: 4px;
         }
         
         .hero-description {
-            font-size: 1.25rem;
+            font-size: 1rem;
             color: #bfdbfe;
-            max-width: 600px;
-            line-height: 1.7;
-            margin-bottom: 24px;
+            max-width: 500px;
+            line-height: 1.5;
+            margin-bottom: 16px;
         }
         
         .hero-stats {
             display: flex;
             flex-wrap: wrap;
-            gap: 16px;
+            gap: 12px;
         }
         
         .hero-stat {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             background: rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            padding: 12px 16px;
+            border-radius: 6px;
+            padding: 8px 12px;
             backdrop-filter: blur(4px);
-            font-size: 0.875rem;
+            font-size: 0.8rem;
             font-weight: 500;
         }
         
         .hero-update {
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(4px);
-            border-radius: 12px;
-            padding: 24px;
+            border-radius: 10px;
+            padding: 16px;
             border: 1px solid rgba(255, 255, 255, 0.2);
-            min-width: 280px;
+            min-width: 220px;
+            flex-shrink: 0;
         }
         
         .hero-update-header {
             display: flex;
             align-items: center;
-            gap: 12px;
-            margin-bottom: 8px;
+            gap: 8px;
+            margin-bottom: 6px;
             color: #bfdbfe;
-            font-size: 0.875rem;
+            font-size: 0.8rem;
             font-weight: 500;
         }
         
         .hero-update-time {
-            font-size: 1.125rem;
+            font-size: 1rem;
             font-weight: 600;
         }
         
@@ -535,6 +537,7 @@
         @media (min-width: 1024px) {
             .content-grid {
                 grid-template-columns: 1fr 2fr;
+                align-items: start;
             }
             
             .hero-content {
@@ -543,11 +546,31 @@
             }
             
             .hero-title {
-                font-size: 4rem;
+                font-size: 2.5rem;
+            }
+            
+            /* Altura dinâmica do mapa */
+            .map-container {
+                height: fit-content;
+            }
+            
+            .map-container .card {
+                height: 100%;
+                display: flex;
+                flex-direction: column;
+            }
+            
+            .map-container .card-content {
+                flex: 1;
+                padding: 0;
+                display: flex;
+                flex-direction: column;
             }
             
             #map {
-                height: 700px;
+                height: 100%;
+                min-height: 500px;
+                flex: 1;
             }
         }
         
@@ -611,7 +634,7 @@
                 <div class="hero-main">
                     <div class="hero-header">
                         <div class="hero-icon">
-                            <i class="fas fa-tint" style="font-size: 2.5rem; color: #bfdbfe;"></i>
+                            <i class="fas fa-tint" style="font-size: 1.8rem; color: #bfdbfe;"></i>
                         </div>
                         <div>
                             <h1 class="hero-title">
@@ -1127,10 +1150,42 @@
             });
         });
 
+        // Função para ajustar altura do mapa dinamicamente
+        function adjustMapHeight() {
+            if (window.innerWidth >= 1024) {
+                const panel = document.querySelector('.panel');
+                const mapContainer = document.querySelector('.map-container .card');
+                
+                if (panel && mapContainer) {
+                    const panelHeight = panel.offsetHeight;
+                    mapContainer.style.height = panelHeight + 'px';
+                    
+                    // Redimensionar o mapa Leaflet
+                    if (map) {
+                        setTimeout(() => {
+                            map.invalidateSize();
+                        }, 100);
+                    }
+                }
+            } else {
+                // Reset para mobile
+                const mapContainer = document.querySelector('.map-container .card');
+                if (mapContainer) {
+                    mapContainer.style.height = 'auto';
+                }
+            }
+        }
+
         // Inicialização
         document.addEventListener('DOMContentLoaded', () => {
             initMap();
             loadCSVData();
+            
+            // Ajustar altura do mapa após carregar
+            setTimeout(adjustMapHeight, 500);
+            
+            // Ajustar altura do mapa quando a janela redimensionar
+            window.addEventListener('resize', adjustMapHeight);
             
             // Atualização automática
             setInterval(() => {
