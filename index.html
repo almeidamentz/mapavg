@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitoramento de Vazamentos — Várzea Grande</title>
+    <meta name="description" content="Sistema público de monitoramento de vazamentos de água em Várzea Grande. Transparência, dados abertos e resposta rápida.">
+    <meta property="og:title" content="Monitoramento de Vazamentos — Várzea Grande">
+    <meta property="og:description" content="Acompanhe ocorrências, status e ações sobre vazamentos de água em Várzea Grande.">
+    <meta property="og:type" content="website">
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    
+    <!-- Font Awesome para ícones -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Papa Parse para CSV -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%);
+            min-height: 100vh;
+            color: #334155;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        /* Hero Section */
+        .hero-section {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 50%, #1e40af 100%);
+            color: white;
+            border-radius: 16px;
+            padding: 48px;
+            margin-bottom: 32px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            opacity: 0.2;
+        }
+        
+        .hero-content {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+        }
+        
+        .hero-main {
+            flex: 1;
+        }
+        
+        .hero-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        
+        .hero-icon {
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            backdrop-filter: blur(4px);
+        }
+        
+        .hero-title {
+            font-size: 3.5rem;
+            font-weight: 700;
+            line-height: 1.1;
+            letter-spacing: -0.025em;
+        }
+        
+        .hero-subtitle {
+            color: #bfdbfe;
+            display: block;
+            margin-top: 8px;
+        }
+        
+        .hero-description {
+            font-size: 1.25rem;
+            color: #bfdbfe;
+            max-width: 600px;
+            line-height: 1.7;
+            margin-bottom: 24px;
+        }
+        
+        .hero-stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        
+        .hero-stat {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 12px 16px;
+            backdrop-filter: blur(4px);
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        
+        .hero-update {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(4px);
+            border-radius: 12px;
+            padding: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            min-width: 280px;
+        }
+        
+        .hero-update-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+            color: #bfdbfe;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        
+        .hero-update-time {
+            font-size: 1.125rem;
+            font-weight: 600;
+        }
+        
+        /* Content Grid */
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 24px;
+        }
+        
+        /* Cards */
+        .card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(8px);
+            border-radius: 12px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .card-header {
+            padding: 24px 24px 16px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+        
+        .card-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #1e293b;
+        }
+        
+        .card-content {
+            padding: 24px;
+        }
+        
+        /* Status Cards */
+        .status-cards {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        
+        .status-card {
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid;
+        }
+        
+        .status-card.pendente {
+            background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+            border-color: #fecaca;
+        }
+        
+        .status-card.realizado {
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            border-color: #bbf7d0;
+        }
+        
+        .status-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+        
+        .status-card-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+        }
+        
+        .status-card.pendente .status-card-label {
+            color: #991b1b;
+        }
+        
+        .status-card.realizado .status-card-label {
+            color: #166534;
+        }
+        
+        .status-card-number {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        
+        .status-card.pendente .status-card-number {
+            color: #b91c1c;
+        }
+        
+        .status-card.realizado .status-card-number {
+            color: #15803d;
+        }
+        
+        .status-card-progress {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .status-card-progress-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.875rem;
+        }
+        
+        .status-card.pendente .status-card-progress-header {
+            color: #dc2626;
+        }
+        
+        .status-card.realizado .status-card-progress-header {
+            color: #16a34a;
+        }
+        
+        .progress-bar {
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .progress-bar.pendente {
+            background-color: #fecaca;
+        }
+        
+        .progress-bar.realizado {
+            background-color: #bbf7d0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+        
+        .progress-fill.pendente {
+            background-color: #ef4444;
+        }
+        
+        .progress-fill.realizado {
+            background-color: #22c55e;
+        }
+        
+        /* Separator */
+        .separator {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #e2e8f0, transparent);
+            margin: 24px 0;
+        }
+        
+        /* Filter Buttons */
+        .filter-section {
+            margin-bottom: 24px;
+        }
+        
+        .filter-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 16px;
+        }
+        
+        .filter-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .filter-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1px solid #d1d5db;
+            background: white;
+            color: #374151;
+        }
+        
+        .filter-btn:hover {
+            background: #f9fafb;
+            border-color: #9ca3af;
+        }
+        
+        .filter-btn.active {
+            color: white;
+            border-color: transparent;
+        }
+        
+        .filter-btn.active.todos {
+            background: #3b82f6;
+        }
+        
+        .filter-btn.active.pendente {
+            background: #ef4444;
+        }
+        
+        .filter-btn.active.realizado {
+            background: #22c55e;
+        }
+        
+        /* Status Message */
+        .status-message {
+            border-radius: 8px;
+            border: 1px solid;
+            padding: 16px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 24px;
+        }
+        
+        .status-message.success {
+            background: #f0fdf4;
+            color: #166534;
+            border-color: #bbf7d0;
+        }
+        
+        .status-message.error {
+            background: #fef2f2;
+            color: #991b1b;
+            border-color: #fecaca;
+        }
+        
+        .status-message.warning {
+            background: #fffbeb;
+            color: #92400e;
+            border-color: #fed7aa;
+        }
+        
+        .status-message.info {
+            background: #eff6ff;
+            color: #1e40af;
+            border-color: #bfdbfe;
+        }
+        
+        /* Lista de Vazamentos */
+        .list-section {
+            margin-bottom: 24px;
+        }
+        
+        .list-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 16px;
+        }
+        
+        .scroll-area {
+            height: 400px;
+            overflow-y: auto;
+            padding-right: 8px;
+        }
+        
+        .scroll-area::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .scroll-area::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 3px;
+        }
+        
+        .scroll-area::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        
+        .vazamento-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .vazamento-item {
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 16px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .vazamento-item:hover {
+            border-color: #d1d5db;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        .vazamento-item.selected {
+            border-color: #3b82f6;
+            background: #eff6ff;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        .vazamento-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        
+        .vazamento-local {
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: #111827;
+        }
+        
+        .badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+        }
+        
+        .badge.pendente {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+        
+        .badge.realizado {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+        
+        .vazamento-coords {
+            font-size: 0.75rem;
+            color: #6b7280;
+            font-family: 'Courier New', monospace;
+            margin-bottom: 8px;
+        }
+        
+        .vazamento-description {
+            font-size: 0.75rem;
+            color: #4b5563;
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+        
+        .vazamento-dates {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            font-size: 0.75rem;
+            color: #6b7280;
+        }
+        
+        .vazamento-date.reparo {
+            color: #16a34a;
+        }
+        
+        .empty-state {
+            border: 2px dashed #d1d5db;
+            border-radius: 8px;
+            padding: 32px;
+            text-align: center;
+            color: #6b7280;
+        }
+        
+        .empty-state i {
+            font-size: 2rem;
+            margin-bottom: 8px;
+            color: #9ca3af;
+        }
+        
+        /* Map */
+        #map {
+            height: 600px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        /* Responsive */
+        @media (min-width: 1024px) {
+            .content-grid {
+                grid-template-columns: 1fr 2fr;
+            }
+            
+            .hero-content {
+                flex-direction: row;
+                align-items: center;
+            }
+            
+            .hero-title {
+                font-size: 4rem;
+            }
+            
+            #map {
+                height: 700px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 16px;
+            }
+            
+            .hero-section {
+                padding: 32px 24px;
+            }
+            
+            .hero-title {
+                font-size: 2.5rem;
+            }
+            
+            .hero-description {
+                font-size: 1rem;
+            }
+            
+            .status-cards {
+                gap: 12px;
+            }
+            
+            .card-header,
+            .card-content {
+                padding: 20px;
+            }
+        }
+        
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .vazamento-item {
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        .status-card {
+            animation: fadeIn 0.5s ease-out;
+        }
+        
+        .hero-section {
+            animation: fadeIn 0.7s ease-out;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Hero Section -->
+        <section class="hero-section">
+            <div class="hero-content">
+                <div class="hero-main">
+                    <div class="hero-header">
+                        <div class="hero-icon">
+                            <i class="fas fa-tint" style="font-size: 2.5rem; color: #bfdbfe;"></i>
+                        </div>
+                        <div>
+                            <h1 class="hero-title">
+                                Sistema de Monitoramento
+                                <span class="hero-subtitle">de Vazamentos</span>
+                            </h1>
+                        </div>
+                    </div>
+                    
+                    <p class="hero-description">
+                        Transparência e resposta rápida à crise de vazamentos de água em Várzea Grande. 
+                        Acompanhe em tempo real as ocorrências e ações da administração pública.
+                    </p>
+                    
+                    <div class="hero-stats">
+                        <div class="hero-stat">
+                            <i class="fas fa-chart-line" style="color: #86efac;"></i>
+                            <span id="heroResolvedPct">0% Resolvidos</span>
+                        </div>
+                        <div class="hero-stat">
+                            <i class="fas fa-map-marker-alt" style="color: #93c5fd;"></i>
+                            <span id="heroTotalCount">0 Ocorrências Registradas</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="hero-update">
+                    <div class="hero-update-header">
+                        <i class="fas fa-clock"></i>
+                        <span>Última Atualização</span>
+                    </div>
+                    <div class="hero-update-time" id="heroLastUpdate">
+                        Carregando...
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Content Grid -->
+        <section class="content-grid">
+            <!-- Painel de Controle -->
+            <div class="panel">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <i class="fas fa-filter" style="color: #2563eb;"></i>
+                            Resumo Geral
+                        </h2>
+                    </div>
+                    <div class="card-content">
+                        <!-- Status Cards com Barras de Progresso -->
+                        <div class="status-cards">
+                            <!-- Pendentes -->
+                            <div class="status-card pendente">
+                                <div class="status-card-header">
+                                    <div class="status-card-label">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        <span>Pendentes</span>
+                                    </div>
+                                    <div class="status-card-number" id="pendentesCount">0</div>
+                                </div>
+                                <div class="status-card-progress">
+                                    <div class="status-card-progress-header">
+                                        <span>Progresso</span>
+                                        <span id="pendentesPercent">0%</span>
+                                    </div>
+                                    <div class="progress-bar pendente">
+                                        <div class="progress-fill pendente" id="pendentesProgress" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Realizados -->
+                            <div class="status-card realizado">
+                                <div class="status-card-header">
+                                    <div class="status-card-label">
+                                        <i class="fas fa-check-circle"></i>
+                                        <span>Realizados</span>
+                                    </div>
+                                    <div class="status-card-number" id="realizadosCount">0</div>
+                                </div>
+                                <div class="status-card-progress">
+                                    <div class="status-card-progress-header">
+                                        <span>Progresso</span>
+                                        <span id="realizadosPercent">0%</span>
+                                    </div>
+                                    <div class="progress-bar realizado">
+                                        <div class="progress-fill realizado" id="realizadosProgress" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="separator"></div>
+
+                        <!-- Filtros -->
+                        <div class="filter-section">
+                            <div class="filter-title">
+                                <i class="fas fa-filter"></i>
+                                Filtrar por Status
+                            </div>
+                            <div class="filter-buttons">
+                                <button class="filter-btn active todos" data-filter="todos">
+                                    <i class="fas fa-list"></i>
+                                    Todos
+                                </button>
+                                <button class="filter-btn pendente" data-filter="pendente">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    Pendentes
+                                </button>
+                                <button class="filter-btn realizado" data-filter="realizado">
+                                    <i class="fas fa-check-circle"></i>
+                                    Realizados
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Status Message -->
+                        <div class="status-message info" id="statusMessage">
+                            <i class="fas fa-spinner fa-spin"></i> Inicializando sistema...
+                        </div>
+
+                        <!-- Lista de Vazamentos -->
+                        <div class="list-section">
+                            <div class="list-title">
+                                <i class="fas fa-map-marker-alt"></i>
+                                <span>Lista de Vazamentos (<span id="listCount">0</span>)</span>
+                            </div>
+                            <div class="scroll-area">
+                                <div class="vazamento-list" id="vazamentoList">
+                                    <div class="empty-state">
+                                        <i class="fas fa-search"></i>
+                                        <div>Nenhum vazamento encontrado</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mapa -->
+            <div class="map-container">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <i class="fas fa-map-marker-alt" style="color: #2563eb;"></i>
+                            Mapa de Ocorrências
+                        </h2>
+                    </div>
+                    <div class="card-content" style="padding: 0;">
+                        <div id="map"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    
+    <script>
+        // Configurações
+        const CONFIG = {
+            csvUrls: [
+                './vazamentos.csv',
+                'vazamentos.csv',
+                'https://raw.githubusercontent.com/almeidamentz/mapaagua/main/vazamentos.csv'
+            ],
+            defaultView: [-15.6427, -56.1722],
+            defaultZoom: 15,
+            refreshInterval: 300000 // 5 minutos
+        };
+
+        // Variáveis globais
+        let map;
+        const markers = {};
+        let vazamentosData = [];
+        let currentFilter = 'todos';
+        let selectedId = null;
+        let lastUpdateTime = null;
+
+        // Inicialização do mapa
+        function initMap() {
+            map = L.map('map').setView(CONFIG.defaultView, CONFIG.defaultZoom);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            }).addTo(map);
+        }
+
+        // Ícones personalizados
+        const icons = {
+            pendente: L.icon({
+                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
+                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41]
+            }),
+            realizado: L.icon({
+                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png',
+                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41]
+            })
+        };
+
+        // Função para atualizar resumo de status
+        function updateStatusSummary() {
+            const total = vazamentosData.length;
+            const pendentes = vazamentosData.filter(v => v.status === 'pendente').length;
+            const realizados = vazamentosData.filter(v => v.status === 'realizado').length;
+            
+            const pendentesPercent = total > 0 ? Math.round((pendentes / total) * 100) : 0;
+            const realizadosPercent = total > 0 ? Math.round((realizados / total) * 100) : 0;
+            
+            // Atualizar números
+            document.getElementById('pendentesCount').textContent = pendentes;
+            document.getElementById('realizadosCount').textContent = realizados;
+            document.getElementById('pendentesPercent').textContent = `${pendentesPercent}%`;
+            document.getElementById('realizadosPercent').textContent = `${realizadosPercent}%`;
+            
+            // Atualizar barras de progresso
+            document.getElementById('pendentesProgress').style.width = `${pendentesPercent}%`;
+            document.getElementById('realizadosProgress').style.width = `${realizadosPercent}%`;
+            
+            // Atualizar hero stats
+            document.getElementById('heroResolvedPct').textContent = `${realizadosPercent}% Resolvidos`;
+            document.getElementById('heroTotalCount').textContent = `${total} Ocorrências Registradas`;
+        }
+
+        // Função para atualizar última atualização
+        function updateLastUpdateTime() {
+            lastUpdateTime = new Date();
+            const timeString = lastUpdateTime.toLocaleString('pt-BR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            document.getElementById('heroLastUpdate').textContent = timeString;
+        }
+
+        // Função para mostrar mensagem de status
+        function updateStatusMessage(message, type = 'info') {
+            const statusElement = document.getElementById('statusMessage');
+            const icons = {
+                success: 'fa-check',
+                error: 'fa-times',
+                warning: 'fa-exclamation-triangle',
+                info: 'fa-info-circle'
+            };
+            
+            statusElement.innerHTML = `<i class="fas ${icons[type]}"></i> ${message}`;
+            statusElement.className = `status-message ${type}`;
+        }
+
+        // Função para tentar carregar CSV
+        async function tryLoadCSV(url) {
+            const timestamp = new Date().getTime();
+            const urlWithCache = url.includes('?') ? `${url}&t=${timestamp}` : `${url}?t=${timestamp}`;
+            
+            const response = await fetch(urlWithCache, {
+                method: 'GET',
+                cache: 'no-cache',
+                headers: {
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache'
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            return await response.text();
+        }
+
+        // Carregar dados do CSV
+        async function loadCSVData() {
+            updateStatusMessage("Carregando dados...", 'info');
+            
+            let lastError = null;
+            
+            for (let i = 0; i < CONFIG.csvUrls.length; i++) {
+                const url = CONFIG.csvUrls[i];
+                
+                try {
+                    const csvData = await tryLoadCSV(url);
+                    
+                    if (!csvData.trim()) {
+                        throw new Error("Arquivo CSV está vazio");
+                    }
+                    
+                    Papa.parse(csvData, {
+                        header: true,
+                        skipEmptyLines: true,
+                        complete: function(results) {
+                            vazamentosData = results.data
+                                .filter(item => item.id && item.local && item.lat && item.lng)
+                                .map(item => ({
+                                    id: item.id.toString(),
+                                    local: item.local.trim(),
+                                    coordenadas: [parseFloat(item.lat), parseFloat(item.lng)],
+                                    status: item.status ? item.status.toLowerCase().trim() : 'pendente',
+                                    dataRegistro: item.data_registro || 'Não informado',
+                                    dataReparo: item.data_reparo || null,
+                                    descricao: item.descricao || 'Sem descrição'
+                                }))
+                                .filter(item => !isNaN(item.coordenadas[0]) && !isNaN(item.coordenadas[1]));
+                            
+                            if (vazamentosData.length === 0) {
+                                throw new Error("Nenhum dado válido encontrado no CSV");
+                            }
+                            
+                            updateMapAndList(currentFilter);
+                            updateStatusSummary();
+                            updateLastUpdateTime();
+                            updateStatusMessage(`Dados carregados com sucesso! ${vazamentosData.length} vazamentos encontrados`, 'success');
+                        },
+                        error: function(error) {
+                            throw new Error(`Erro ao processar CSV: ${error.message}`);
+                        }
+                    });
+                    
+                    return;
+                    
+                } catch (error) {
+                    lastError = error;
+                }
+            }
+            
+            updateStatusMessage(`Erro ao carregar dados: ${lastError?.message}. Carregando dados de exemplo.`, 'warning');
+            loadExampleData();
+        }
+
+        // Carregar dados de exemplo
+        function loadExampleData() {
+            vazamentosData = [
+                {
+                    id: "1",
+                    local: "Rua das Flores",
+                    coordenadas: [-15.643681, -56.172236],
+                    status: "pendente",
+                    dataRegistro: "2023-05-15",
+                    dataReparo: null,
+                    descricao: "Vazamento em tubulação principal"
+                },
+                {
+                    id: "2",
+                    local: "Avenida Central",
+                    coordenadas: [-15.641791, -56.172204],
+                    status: "realizado",
+                    dataRegistro: "2023-05-10",
+                    dataReparo: "2023-05-12",
+                    descricao: "Vazamento reparado com sucesso"
+                },
+                {
+                    id: "3",
+                    local: "Julio Campos",
+                    coordenadas: [-15.640984, -56.173266],
+                    status: "pendente",
+                    dataRegistro: "2023-05-15",
+                    dataReparo: null,
+                    descricao: "Vazamento em tubulação principal"
+                },
+                {
+                    id: "4",
+                    local: "Rua Vitória",
+                    coordenadas: [-15.660342, -56.182368],
+                    status: "pendente",
+                    dataRegistro: "2023-05-15",
+                    dataReparo: null,
+                    descricao: "Vazamento na via"
+                }
+            ];
+            
+            updateMapAndList(currentFilter);
+            updateStatusSummary();
+            updateLastUpdateTime();
+        }
+
+        // Atualizar mapa e lista
+        function updateMapAndList(filter = 'todos') {
+            // Limpar marcadores existentes
+            Object.values(markers).forEach(marker => map.removeLayer(marker));
+            
+            const filteredData = filter === 'todos' 
+                ? vazamentosData 
+                : vazamentosData.filter(v => v.status === filter);
+            
+            // Adicionar novos marcadores
+            filteredData.forEach(vazamento => {
+                const coords = vazamento.coordenadas;
+                const status = vazamento.status.toLowerCase();
+                
+                if (isNaN(coords[0]) || isNaN(coords[1])) return;
+                
+                const icon = icons[status] || icons.pendente;
+                
+                markers[vazamento.id] = L.marker(coords, { icon })
+                    .addTo(map)
+                    .bindPopup(`
+                        <div style="font-family: Arial, sans-serif; min-width: 200px;">
+                            <h4 style="margin: 0 0 8px 0; color: #1e293b; font-size: 1rem;">${vazamento.local}</h4>
+                            <span class="badge ${status}" style="display: inline-block; margin-bottom: 8px;">${status.toUpperCase()}</span>
+                            <p style="margin: 8px 0; color: #64748b; font-size: 0.875rem;">${vazamento.descricao}</p>
+                            <div style="font-size: 0.75rem; color: #94a3b8;">
+                                <div>📅 Registrado: ${vazamento.dataRegistro}</div>
+                                ${vazamento.dataReparo ? `<div style="color: #16a34a;">✅ Reparado: ${vazamento.dataReparo}</div>` : ''}
+                            </div>
+                        </div>
+                    `)
+                    .on('click', () => {
+                        selectVazamento(vazamento.id);
+                    });
+            });
+            
+            updateVazamentoList(filter);
+            
+            // Ajustar visualização do mapa
+            if (filteredData.length > 0) {
+                const group = new L.featureGroup(Object.values(markers));
+                map.fitBounds(group.getBounds().pad(0.1));
+            }
+        }
+
+        // Atualizar lista de vazamentos
+        function updateVazamentoList(filter = 'todos') {
+            const listContainer = document.getElementById('vazamentoList');
+            const listCount = document.getElementById('listCount');
+            
+            const filteredData = filter === 'todos' 
+                ? vazamentosData 
+                : vazamentosData.filter(v => v.status === filter);
+            
+            listCount.textContent = filteredData.length;
+            
+            if (filteredData.length === 0) {
+                listContainer.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-search"></i>
+                        <div>Nenhum vazamento encontrado</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            listContainer.innerHTML = '';
+            
+            filteredData.forEach(vazamento => {
+                const item = document.createElement('div');
+                item.className = `vazamento-item ${selectedId === vazamento.id ? 'selected' : ''}`;
+                item.innerHTML = `
+                    <div class="vazamento-header">
+                        <div class="vazamento-local">${vazamento.local}</div>
+                        <span class="badge ${vazamento.status}">
+                            ${vazamento.status.toUpperCase()}
+                        </span>
+                    </div>
+                    <div class="vazamento-coords">
+                        📍 ${vazamento.coordenadas[0].toFixed(6)}, ${vazamento.coordenadas[1].toFixed(6)}
+                    </div>
+                    <div class="vazamento-description">${vazamento.descricao}</div>
+                    <div class="vazamento-dates">
+                        <span>📅 ${vazamento.dataRegistro}</span>
+                        ${vazamento.dataReparo ? `<span class="vazamento-date reparo">✅ ${vazamento.dataReparo}</span>` : ''}
+                    </div>
+                `;
+                
+                item.addEventListener('click', () => {
+                    selectVazamento(vazamento.id);
+                });
+                
+                listContainer.appendChild(item);
+            });
+        }
+
+        // Selecionar vazamento
+        function selectVazamento(id) {
+            selectedId = id;
+            const vazamento = vazamentosData.find(v => v.id === id);
+            
+            if (vazamento && markers[id]) {
+                map.setView(vazamento.coordenadas, 18);
+                markers[id].openPopup();
+            }
+            
+            // Atualizar visual da lista
+            document.querySelectorAll('.vazamento-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            
+            const selectedItem = Array.from(document.querySelectorAll('.vazamento-item'))
+                .find(item => item.innerHTML.includes(vazamento?.local));
+            if (selectedItem) {
+                selectedItem.classList.add('selected');
+            }
+        }
+
+        // Event listeners para filtros
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const filter = btn.dataset.filter;
+                currentFilter = filter;
+                
+                // Atualizar botões ativos
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                // Atualizar mapa e lista
+                updateMapAndList(filter);
+            });
+        });
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', () => {
+            initMap();
+            loadCSVData();
+            
+            // Atualização automática
+            setInterval(() => {
+                if (vazamentosData.length > 0) {
+                    loadCSVData();
+                }
+            }, CONFIG.refreshInterval);
+        });
+    </script>
+</body>
+</html>
+

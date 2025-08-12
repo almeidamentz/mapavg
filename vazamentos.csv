@@ -1,0 +1,7 @@
+id,local,lat,lng,status,data_registro,data_reparo,descricao
+1,Rua das Flores,-15.643681,-56.172236,pendente,2023-05-15,,Vazamento em tubulação principal
+2,Avenida Central,-15.641791,-56.172204,realizado,2023-05-10,2023-05-12,Vazamento reparado com sucesso
+3,Julio Campos,-15.640984, -56.173266,pendente,2023-05-15,,Vazamento em tubulação principal2
+4,Rua Vitória,-15.660342, -56.182368,pendente,2023-05-15,,Vazamento na via
+5,Rua Acacia,-15.633757, -56.162926,pendente,2023-05-15,,Vazamento na via
+
